@@ -22,12 +22,16 @@ from .rle_regression_head import nets, nett, RealNVP, nets3d, nett3d
 from easydict import EasyDict
 from mmpose.models.losses.regression_loss import L1Loss
 from mmpose.models.losses.rle_loss import RLELoss_poseur, RLEOHKMLoss
-from config import cfg
-from utils.human_models import smpl_x
+
 from torch.distributions.utils import lazy_property
 
 from torch.distributions import MultivariateNormal
+import os, sys
 
+# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from config import cfg
+from utils.human_models import smpl_x
 
 def fliplr_rle_regression(regression,
                           regression_score,

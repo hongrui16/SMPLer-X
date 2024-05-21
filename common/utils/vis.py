@@ -5,10 +5,17 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
-os.environ["PYOPENGL_PLATFORM"] = "egl"
-import pyrender
+import open3d as o3d
+
 import trimesh
+import os, sys
+import platform
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
 from config import cfg
+
+os.environ["PYOPENGL_PLATFORM"] = "egl"
 
 def vis_keypoints_with_skeleton(img, kps, kps_lines, kp_thresh=0.4, alpha=1):
     # Convert from plt 0-1 RGBA colors to 0-255 BGR colors for opencv.
@@ -139,14 +146,16 @@ def perspective_projection(vertices, cam_param):
     return vertices
 
 
-def render_mesh(img, mesh, face, cam_param, mesh_as_vertices=False):
+def render_mesh(img, vertice, face, cam_param, mesh_as_vertices=False):
+    import pyrender
+
     if mesh_as_vertices:
         # to run on cluster where headless pyrender is not supported for A100/V100
-        vertices_2d = perspective_projection(mesh, cam_param)
+        vertices_2d = perspective_projection(vertice, cam_param)
         img = vis_keypoints(img, vertices_2d, alpha=0.8, radius=2, color=(0, 0, 255))
     else:
         # mesh
-        mesh = trimesh.Trimesh(mesh, face)
+        mesh = trimesh.Trimesh(vertice, face)
         rot = trimesh.transformations.rotation_matrix(
         np.radians(180), [1, 0, 0])
         mesh.apply_transform(rot)
@@ -181,3 +190,143 @@ def render_mesh(img, mesh, face, cam_param, mesh_as_vertices=False):
         img = rgb * valid_mask + img * (1-valid_mask)
 
     return img
+
+
+def rotate_mesh(mesh, rotation_degrees, axis):
+    """
+    对给定的网格应用旋转变换。
+    :param mesh: Open3D的TriangleMesh对象。
+    :param rotation_degrees: 旋转角度（度）。
+    :param axis: 旋转轴，格式为[x, y, z]。
+    :return: 无返回值，直接修改输入的mesh。
+    """
+    R = mesh.get_rotation_matrix_from_xyz(np.radians(rotation_degrees) * np.array(axis))
+    mesh.rotate(R, center=(0, 0, 0))
+
+
+def custom_projection_matrix(img, fx, fy, cx, cy, znear, zfar):
+    # 根据内参生成透视投影矩阵
+    proj_matrix = np.zeros((4, 4))
+    proj_matrix[0, 0] = 2 * fx / img.shape[1]
+    proj_matrix[0, 2] = (2 * cx / img.shape[1]) - 1
+    proj_matrix[1, 1] = 2 * fy / img.shape[0]
+    proj_matrix[1, 2] = (2 * cy / img.shape[0]) - 1
+    proj_matrix[2, 2] = -(zfar + znear) / (zfar - znear)
+    proj_matrix[2, 3] = -2 * zfar * znear / (zfar - znear)
+    proj_matrix[3, 2] = -1
+    return proj_matrix
+
+def calculate_camera_position(bbox, img_width, img_height, cam_param):
+    # 解析边界框和相机参数
+    x_min, y_min, x_max, y_max = bbox
+    fx, fy = cam_param['focal']
+    cx, cy = cam_param['princpt']
+
+    # 计算边界框中心
+    bbox_center_x = (x_min + x_max) / 2
+    bbox_center_y = (y_min + y_max) / 2
+
+    # 计算边界框尺寸
+    bbox_width = x_max - x_min
+    bbox_height = y_max - y_min
+
+    # 设置相机位置
+    # 这里的2是一个示例放大因子，可以根据需要调整
+    eye_z = 2 * max(bbox_width / fx, bbox_height / fy)
+
+    # 相机朝向原点，通常我们希望相机朝向边界框中心
+    eye = [bbox_center_x - cx, bbox_center_y - cy, eye_z]
+    target = [bbox_center_x - cx, bbox_center_y - cy, 0]
+    up = [0, 1, 0]  # Y轴正方向为上
+
+    return eye, target, up
+
+
+def look_at(eye, target, up):
+    f = np.array(target) - np.array(eye)
+    f = f / np.linalg.norm(f)
+    u = np.array(up)
+    u = u / np.linalg.norm(u)
+    s = np.cross(f, u)
+    s = s / np.linalg.norm(s)
+    u = np.cross(s, f)
+    
+    mat = np.eye(4)
+    mat[:3, :3] = np.vstack([s, u, -f])
+    mat[:3, 3] = -mat[:3, :3] @ np.array(eye)
+    return mat
+
+
+
+def render_mesh_open3d(img, vertice, face, cam_param, mesh_as_vertices=False, bbox = None):
+    
+    #resize image to two times larger
+    img = cv2.resize(img, (img.shape[1]*2, img.shape[0]*2))
+    
+    if mesh_as_vertices:
+        # 直接使用透视投影的方式渲染顶点到图像
+        vertices_2d = perspective_projection(vertice, cam_param)
+        img = vis_keypoints(img, vertices_2d, alpha=0.5, radius=2, color=(0, 0, 255))
+    else:
+        # 创建网格
+        mesh = o3d.geometry.TriangleMesh(vertices=o3d.utility.Vector3dVector(vertice), triangles=o3d.utility.Vector3iVector(face))
+        mesh.compute_vertex_normals()
+
+        # o3d.visualization.draw_geometries([mesh]) # 显示网格
+        # 旋转网格以确保正确朝向
+        rotate_mesh(mesh, 180, [1, 0, 0])  # 绕X轴旋转180度
+
+
+
+        # 设置相机参数
+        width, height = img.shape[1], img.shape[0]
+        # print(f'width: {width}, height: {height}')
+        intrinsic = o3d.camera.PinholeCameraIntrinsic(width, height, cam_param['focal'][0], cam_param['focal'][1], cam_param['princpt'][0], cam_param['princpt'][1])
+        cam_params = o3d.camera.PinholeCameraParameters()
+        cam_params.intrinsic = intrinsic
+        cam_params.extrinsic = np.eye(4)
+
+    
+        # 创建渲染选项和视图控制器
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(visible=False, width=width, height=height)  # 确保视窗尺寸与内参矩阵匹配
+        vis.add_geometry(mesh)
+
+        mesh_center = mesh.get_center()  # 获取网格中心
+        # 调整相机焦点，将 Y 坐标稍微增加
+        new_lookat = [mesh_center[0], mesh_center[1] + 0.15, mesh_center[2]]  # 根据需要调整这里的 0.1
+
+        # # 设置相机位置
+        ctr = vis.get_view_control()
+        ctr.set_front([0, 0, 1])   # 默认相机朝向
+        ctr.set_lookat(new_lookat)  # 将相机焦点设置在网格的中心
+        # ctr.set_lookat([0, 0, 16])  # 相机默认看向原点
+        ctr.set_up([0, 1, 0])     # 保持默认的上方向
+        ctr.set_zoom(0.25)  # 调整缩放比例，确保模型在视野中适当大小
+
+
+        # 渲染图像
+        vis.update_geometry(mesh)
+        vis.poll_events()
+        vis.update_renderer()
+
+        # 从 Open3D 中捕获渲染的图像
+        mesh_vis = vis.capture_screen_float_buffer(False)
+        
+        # 将 Open3D 的输出转换为可用的 NumPy 图像格式
+        mesh_vis = (np.asarray(mesh_vis) * 255).astype(np.uint8)
+        mesh_vis = cv2.cvtColor(mesh_vis, cv2.COLOR_RGB2BGR)
+
+        # # 合并到原始图像
+        # valid_mask = (mesh_vis[:, :, 0] > 0)[:, :, None]
+        # image = mesh_vis * valid_mask + img * (1 - valid_mask)
+
+        # concatenate the two images horizontally
+        
+        image = np.concatenate((img, mesh_vis), axis=1)
+        vis.destroy_window()
+        return image
+
+
+    return img
+

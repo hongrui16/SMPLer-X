@@ -1,0 +1,1 @@
+python inference.py --agora_benchmark agora_model --show_verts --show_bbox --save_mesh 

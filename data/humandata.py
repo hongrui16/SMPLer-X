@@ -6,11 +6,15 @@ import cv2
 import json
 import copy
 from pycocotools.coco import COCO
-from config import cfg
-from utils.human_models import smpl_x
-from utils.preprocessing import load_img, process_bbox, augmentation, process_db_coord, process_human_model_output, \
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from main.config import cfg
+
+from common.utils.human_models import smpl_x
+from common.utils.preprocessing import load_img, process_bbox, augmentation, process_db_coord, process_human_model_output, \
     get_fitting_error_3D
-from utils.transforms import world2cam, cam2pixel, rigid_align
+from common.utils.transforms import world2cam, cam2pixel, rigid_align
 import tqdm
 import time
 import random

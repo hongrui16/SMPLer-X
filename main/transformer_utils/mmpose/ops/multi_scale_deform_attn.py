@@ -6,8 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd.function import Function, once_differentiable
 
-from mmcv import deprecated_api_warning
-from mmcv.cnn import constant_init, xavier_init
+from mmengine.utils import deprecated_api_warning
+from mmengine.model import kaiming_init, xavier_init, constant_init
+
 from mmcv.cnn.bricks.registry import ATTENTION
 from mmcv.runner import BaseModule
 from mmcv.utils import ext_loader

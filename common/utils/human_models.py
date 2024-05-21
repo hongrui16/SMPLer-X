@@ -1,16 +1,34 @@
 import numpy as np
 import torch
 import os.path as osp
-from config import cfg
-from utils.smplx import smplx
+
 import pickle
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from common.utils.smplx import smplx
+
+# from main.config import cfg
+
+from config import cfg
+
+# if hasattr(cfg, 'human_model_path'):
+#     print("human_model_path is set in cfg")
+# else:
+#     print("human_model_path is not set in cfg")
+
 
 class SMPLX(object):
     def __init__(self):
-        self.layer_arg = {'create_global_orient': False, 'create_body_pose': False, 'create_left_hand_pose': False, 'create_right_hand_pose': False, 'create_jaw_pose': False, 'create_leye_pose': False, 'create_reye_pose': False, 'create_betas': False, 'create_expression': False, 'create_transl': False}
-        self.layer = {'neutral': smplx.create(cfg.human_model_path, 'smplx', gender='NEUTRAL', use_pca=False, use_face_contour=True, **self.layer_arg),
-                        'male': smplx.create(cfg.human_model_path, 'smplx', gender='MALE', use_pca=False, use_face_contour=True, **self.layer_arg),
-                        'female': smplx.create(cfg.human_model_path, 'smplx', gender='FEMALE', use_pca=False, use_face_contour=True, **self.layer_arg)
+        self.layer_arg = {'create_global_orient': False, 'create_body_pose': False, 'create_left_hand_pose': False, 
+                          'create_right_hand_pose': False, 'create_jaw_pose': False, 'create_leye_pose': False, 
+                          'create_reye_pose': False, 'create_betas': False, 'create_expression': False, 'create_transl': False}
+        self.layer = {'neutral': smplx.create(cfg.human_model_path, 'smplx', gender='NEUTRAL', use_pca=False,
+                                               use_face_contour=True, **self.layer_arg),
+                        'male': smplx.create(cfg.human_model_path, 'smplx', gender='MALE', 
+                                             use_pca=False, use_face_contour=True, **self.layer_arg),
+                        'female': smplx.create(cfg.human_model_path, 'smplx', gender='FEMALE', 
+                                               use_pca=False, use_face_contour=True, **self.layer_arg)
                         }
         self.vertex_num = 10475
         self.face = self.layer['neutral'].faces
@@ -153,7 +171,9 @@ class SMPLX(object):
 class SMPL(object):
     def __init__(self):
         self.layer_arg = {'create_body_pose': False, 'create_betas': False, 'create_global_orient': False, 'create_transl': False}
-        self.layer = {'neutral': smplx.create(cfg.human_model_path, 'smpl', gender='NEUTRAL', **self.layer_arg), 'male': smplx.create(cfg.human_model_path, 'smpl', gender='MALE', **self.layer_arg), 'female': smplx.create(cfg.human_model_path, 'smpl', gender='FEMALE', **self.layer_arg)}
+        self.layer = {'neutral': smplx.create(cfg.human_model_path, 'smpl', gender='NEUTRAL', **self.layer_arg), 
+                      'male': smplx.create(cfg.human_model_path, 'smpl', gender='MALE', **self.layer_arg), 
+                      'female': smplx.create(cfg.human_model_path, 'smpl', gender='FEMALE', **self.layer_arg)}
         self.vertex_num = 6890
         self.face = self.layer['neutral'].faces
         self.shape_param_dim = 10

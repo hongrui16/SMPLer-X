@@ -1,9 +1,12 @@
 import torch
 import numpy as np
 import scipy
-from config import cfg
 from torch.nn import functional as F
 import torchgeometry as tgm
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from config import cfg
 
 
 def cam2pixel(cam_coord, f, c):

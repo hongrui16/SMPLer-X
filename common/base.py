@@ -4,20 +4,32 @@ import abc
 from torch.utils.data import DataLoader
 import torch.optim
 import torchvision.transforms as transforms
-from timer import Timer
-from logger import colorlogger
+# from timer import Timer
 from torch.nn.parallel.data_parallel import DataParallel
-from config import cfg
-from SMPLer_X import get_model
-from dataset import MultipleDatasets
 # ddp
 import torch.distributed as dist
 from torch.utils.data import DistributedSampler
 import torch.utils.data.distributed
+# from mmcv.runner import get_dist_info
+from mmengine.dist import (broadcast, get_dist_info, get_rank, get_world_size,
+                           init_dist, is_distributed, master_only)
+
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# from main.config import cfg
+from config import cfg
+
+from main.SMPLer_X import get_model
+from common.logger import colorlogger
+from common.timer import Timer
+from data.dataset import MultipleDatasets
+
 from utils.distribute_utils import (
     get_rank, is_main_process, time_synchronized, get_group_idx, get_process_groups
 )
-from mmcv.runner import get_dist_info
+
+# os.environ["PYOPENGL_PLATFORM"] = "egl"
 
 # dynamic dataset import
 for i in range(len(cfg.trainset_3d)):

@@ -6,6 +6,7 @@ from mmcv.utils import Registry, build_from_cfg
 MODELS = Registry(
     'models', build_func=build_model_from_cfg, parent=MMCV_MODELS)
 
+
 BACKBONES = MODELS
 NECKS = MODELS
 HEADS = MODELS

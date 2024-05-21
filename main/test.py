@@ -1,10 +1,15 @@
 import argparse
-from config import cfg
 from tqdm import tqdm
 import torch
 import torch.backends.cudnn as cudnn
 import os.path as osp
 
+
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from config import cfg
+from common.base import Tester
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -35,7 +40,6 @@ def main():
 
     cudnn.benchmark = True
 
-    from base import Tester
     tester = Tester()
 
 

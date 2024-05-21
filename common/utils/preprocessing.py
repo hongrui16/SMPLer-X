@@ -1,13 +1,20 @@
 import numpy as np
 import cv2
 import random
-from config import cfg
 import math
-from utils.human_models import smpl_x, smpl
-from utils.transforms import cam2pixel, transform_joint_to_other_db
+
 from plyfile import PlyData, PlyElement
 import torch
 
+import sys, os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from utils.human_models import smpl_x, smpl
+from utils.transforms import cam2pixel, transform_joint_to_other_db
+
+from config import cfg
 
 def load_img(path, order='RGB'):
     img = cv2.imread(path, cv2.IMREAD_COLOR | cv2.IMREAD_IGNORE_ORIENTATION)

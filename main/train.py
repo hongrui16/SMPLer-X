@@ -6,11 +6,17 @@ import os.path as osp
 
 # ddp
 import torch.distributed as dist
+
+import torch.distributed as dist
+from mmcv.runner import get_dist_info
+
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+
+from common.base import Trainer
 from common.utils.distribute_utils import (
     init_distributed_mode, is_main_process, set_seed
 )
-import torch.distributed as dist
-from mmcv.runner import get_dist_info
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -34,7 +40,7 @@ def main():
 
     # ddp by default in this branch
     distributed, gpu_idx = init_distributed_mode(args.master_port)
-    from base import Trainer
+    
     trainer = Trainer(distributed, gpu_idx)
     
     # ddp

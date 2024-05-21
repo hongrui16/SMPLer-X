@@ -1,15 +1,23 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from nets.smpler_x import PositionNet, HandRotationNet, FaceRegressor, BoxNet, HandRoI, BodyRotationNet
-from nets.loss import CoordLoss, ParamLoss, CELoss
-from utils.human_models import smpl_x
-from utils.transforms import rot6d_to_axis_angle, restore_bbox
-from config import cfg
+
+
 import math
 import copy
+from mmengine.config import Config
 from mmpose.models import build_posenet
-from mmcv import Config
+
+
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# from main.config import cfg
+from config import cfg
+
+from common.nets.smpler_x import PositionNet, HandRotationNet, FaceRegressor, BoxNet, HandRoI, BodyRotationNet
+from common.nets.loss import CoordLoss, ParamLoss, CELoss
+from common.utils.human_models import smpl_x
+from common.utils.transforms import rot6d_to_axis_angle, restore_bbox
 
 class Model(nn.Module):
     def __init__(self, encoder, body_position_net, body_rotation_net, box_net, hand_position_net, hand_roi_net,

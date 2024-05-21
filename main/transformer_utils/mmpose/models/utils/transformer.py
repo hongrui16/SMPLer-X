@@ -25,9 +25,12 @@ import copy
 import warnings
 from mmcv.cnn import build_activation_layer, build_norm_layer, xavier_init
 
-from utils.human_models import smpl_x
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../..')))
 
-from config import cfg
+from main.config import cfg
+from common.utils.human_models import smpl_x
+
 
 
 def point_sample(input, point_coords, **kwargs):
